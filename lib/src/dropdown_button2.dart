@@ -279,17 +279,7 @@ class _DropdownMenuState<T> extends State<_DropdownMenu<T>> {
     //If searchController is null, then it'll perform as a normal dropdown
     //and search functions will not be executed.
     if (searchData?.searchController == null) {
-      _children = <Widget>[
-        for (int index = 0; index < widget.route.items.length; ++index)
-          _DropdownMenuItemButton<T>(
-            route: widget.route,
-            textDirection: widget.textDirection,
-            buttonRect: widget.buttonRect,
-            constraints: widget.constraints,
-            itemIndex: index,
-            enableFeedback: widget.enableFeedback,
-          ),
-      ];
+      _children = _getItems();
     } else {
       _searchMatchFn = searchData?.searchMatchFn ?? _defaultSearchMatchFn;
       _children = _getSearchItems();
@@ -298,9 +288,28 @@ class _DropdownMenuState<T> extends State<_DropdownMenu<T>> {
     }
   }
 
+  void _updateMenuItems() {
+    _children = _getItems();
+    setState(() {});
+  }
+
   void _updateSearchItems() {
     _children = _getSearchItems();
     setState(() {});
+  }
+
+  List<Widget> _getItems() {
+    return <Widget>[
+      for (int index = 0; index < widget.route.items.length; ++index)
+        _DropdownMenuItemButton<T>(
+          route: widget.route,
+          textDirection: widget.textDirection,
+          buttonRect: widget.buttonRect,
+          constraints: widget.constraints,
+          itemIndex: index,
+          enableFeedback: widget.enableFeedback,
+        ),
+    ];
   }
 
   List<Widget> _getSearchItems() {
@@ -341,6 +350,8 @@ class _DropdownMenuState<T> extends State<_DropdownMenu<T>> {
     final MaterialLocalizations localizations =
         MaterialLocalizations.of(context);
     final _DropdownRoute<T> route = widget.route;
+    final ValueNotifier<int> itemLength =
+        ValueNotifier<int>(route.items.length);
 
     return FadeTransition(
       opacity: _fadeOpacity,
@@ -394,13 +405,18 @@ class _DropdownMenuState<T> extends State<_DropdownMenu<T>> {
                               scrollbarTheme: dropdownStyle.scrollbarTheme,
                             ),
                             child: Scrollbar(
-                              child: ListView(
-                                // Ensure this always inherits the PrimaryScrollController
-                                primary: true,
-                                padding: dropdownStyle.padding ??
-                                    kMaterialListPadding,
-                                shrinkWrap: true,
-                                children: _children,
+                              child: ValueListenableBuilder<int>(
+                                builder: (context, value, child) {
+                                  return ListView(
+                                    // Ensure this always inherits the PrimaryScrollController
+                                    primary: true,
+                                    padding: dropdownStyle.padding ??
+                                        kMaterialListPadding,
+                                    shrinkWrap: true,
+                                    children: _children,
+                                  );
+                                },
+                                valueListenable: itemLength,
                               ),
                             ),
                           ),
