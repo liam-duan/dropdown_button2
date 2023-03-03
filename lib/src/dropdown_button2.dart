@@ -725,7 +725,7 @@ class _DropdownRoute<T> extends PopupRoute<_DropdownRouteResult<T>> {
   }
 }
 
-class _DropdownRoutePage<T> extends StatelessWidget {
+class _DropdownRoutePage<T> extends StatefulWidget {
   const _DropdownRoutePage({
     super.key,
     required this.route,
@@ -748,6 +748,11 @@ class _DropdownRoutePage<T> extends StatelessWidget {
   final bool enableFeedback;
 
   @override
+  State<_DropdownRoutePage<T>> createState() => _DropdownRoutePageState<T>();
+}
+
+class _DropdownRoutePageState<T> extends State<_DropdownRoutePage<T>> {
+  @override
   Widget build(BuildContext context) {
     assert(debugCheckHasDirectionality(context));
 
@@ -757,20 +762,22 @@ class _DropdownRoutePage<T> extends StatelessWidget {
     // and all of the items' intrinsic heights are less than _kMenuItemHeight.
     // Otherwise the initialScrollOffset is just a rough approximation based on
     // treating the items as if their heights were all equal to _kMenuItemHeight.
-    if (route.scrollController == null) {
-      final _MenuLimits menuLimits =
-          route.getMenuLimits(buttonRect, constraints.maxHeight, selectedIndex);
-      route.scrollController =
+    if (widget.route.scrollController == null) {
+      final _MenuLimits menuLimits = widget.route.getMenuLimits(
+          widget.buttonRect,
+          widget.constraints.maxHeight,
+          widget.selectedIndex);
+      widget.route.scrollController =
           ScrollController(initialScrollOffset: menuLimits.scrollOffset);
     }
 
     final TextDirection? textDirection = Directionality.maybeOf(context);
     final Widget menu = _DropdownMenu<T>(
-      route: route,
+      route: widget.route,
       textDirection: textDirection,
-      buttonRect: buttonRect,
-      constraints: constraints,
-      enableFeedback: enableFeedback,
+      buttonRect: widget.buttonRect,
+      constraints: widget.constraints,
+      enableFeedback: widget.enableFeedback,
     );
 
     return MediaQuery.removePadding(
@@ -783,12 +790,12 @@ class _DropdownRoutePage<T> extends StatelessWidget {
         builder: (BuildContext context) {
           return CustomSingleChildLayout(
             delegate: _DropdownMenuRouteLayout<T>(
-              route: route,
+              route: widget.route,
               textDirection: textDirection,
-              buttonRect: buttonRect,
-              availableHeight: constraints.maxHeight,
+              buttonRect: widget.buttonRect,
+              availableHeight: widget.constraints.maxHeight,
             ),
-            child: capturedThemes.wrap(menu),
+            child: widget.capturedThemes.wrap(menu),
           );
         },
       ),
