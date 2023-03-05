@@ -226,11 +226,15 @@ class DropdownSearchData<T> {
     this.searchInnerWidget,
     this.searchInnerWidgetHeight,
     this.searchMatchFn,
+    this.dropdownMenuItemListNotifier,
   }) : assert(
           (searchInnerWidget == null) == (searchInnerWidgetHeight == null),
           "searchInnerWidgetHeight should not be null when using searchInnerWidget"
           "This is necessary to properly determine menu limits and scroll offset",
         );
+
+  //
+  final DropdownMenuItemListNotifier? dropdownMenuItemListNotifier;
 
   /// The TextEditingController used for searchable dropdowns. If this is null,
   /// then it'll perform as a normal dropdown without searching feature.
@@ -251,4 +255,17 @@ class DropdownSearchData<T> {
   ///   item.value.toString().toLowerCase().contains(searchValue.toLowerCase());
   /// ```
   final SearchMatchFn<T>? searchMatchFn;
+}
+
+class DropdownMenuItemListNotifier
+    extends ValueNotifier<List<DropdownMenuItem>> {
+  DropdownMenuItemListNotifier(List<DropdownMenuItem>? value) : super(value!);
+
+  void add(DropdownMenuItem valueToAdd) {
+    value = [...value, valueToAdd];
+  }
+
+  void remove(DropdownMenuItem valueToRemove) {
+    value = value.where((value) => value != valueToRemove).toList();
+  }
 }

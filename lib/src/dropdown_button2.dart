@@ -279,7 +279,10 @@ class _DropdownMenuState<T> extends State<_DropdownMenu<T>> {
     //If searchController is null, then it'll perform as a normal dropdown
     //and search functions will not be executed.
     if (searchData?.searchController == null) {
-      _children = _getItems();
+      _children = _getFilteredItems();
+
+      searchData?.dropdownMenuItemListNotifier
+          ?.addListener(_updateFilteredItems);
     } else {
       _searchMatchFn = searchData?.searchMatchFn ?? _defaultSearchMatchFn;
       _children = _getSearchItems();
@@ -288,8 +291,8 @@ class _DropdownMenuState<T> extends State<_DropdownMenu<T>> {
     }
   }
 
-  void _updateMenuItems() {
-    _children = _getItems();
+  void _updateFilteredItems() {
+    _children = _getFilteredItems();
     setState(() {});
   }
 
@@ -298,17 +301,20 @@ class _DropdownMenuState<T> extends State<_DropdownMenu<T>> {
     setState(() {});
   }
 
-  List<Widget> _getItems() {
+  List<Widget> _getFilteredItems() {
     return <Widget>[
       for (int index = 0; index < widget.route.items.length; ++index)
-        _DropdownMenuItemButton<T>(
-          route: widget.route,
-          textDirection: widget.textDirection,
-          buttonRect: widget.buttonRect,
-          constraints: widget.constraints,
-          itemIndex: index,
-          enableFeedback: widget.enableFeedback,
-        ),
+        if (searchData?.dropdownMenuItemListNotifier?.value
+                .contains(widget.route.items[index].item) ??
+            true)
+          _DropdownMenuItemButton<T>(
+            route: widget.route,
+            textDirection: widget.textDirection,
+            buttonRect: widget.buttonRect,
+            constraints: widget.constraints,
+            itemIndex: index,
+            enableFeedback: widget.enableFeedback,
+          ),
     ];
   }
 
@@ -350,8 +356,6 @@ class _DropdownMenuState<T> extends State<_DropdownMenu<T>> {
     final MaterialLocalizations localizations =
         MaterialLocalizations.of(context);
     final _DropdownRoute<T> route = widget.route;
-    final ValueNotifier<int> itemLength =
-        ValueNotifier<int>(route.items.length);
 
     return FadeTransition(
       opacity: _fadeOpacity,
@@ -405,18 +409,13 @@ class _DropdownMenuState<T> extends State<_DropdownMenu<T>> {
                               scrollbarTheme: dropdownStyle.scrollbarTheme,
                             ),
                             child: Scrollbar(
-                              child: ValueListenableBuilder<int>(
-                                builder: (context, value, child) {
-                                  return ListView(
-                                    // Ensure this always inherits the PrimaryScrollController
-                                    primary: true,
-                                    padding: dropdownStyle.padding ??
-                                        kMaterialListPadding,
-                                    shrinkWrap: true,
-                                    children: _children,
-                                  );
-                                },
-                                valueListenable: itemLength,
+                              child: ListView(
+                                // Ensure this always inherits the PrimaryScrollController
+                                primary: true,
+                                padding: dropdownStyle.padding ??
+                                    kMaterialListPadding,
+                                shrinkWrap: true,
+                                children: _children,
                               ),
                             ),
                           ),
@@ -1249,6 +1248,8 @@ class DropdownButton2State<T> extends State<DropdownButton2<T>>
 
   DropdownSearchData<T>? get searchData => widget.dropdownSearchData;
 
+  late List<_MenuItem<T>> menuItems;
+
   FocusNode? get focusNode => widget.focusNode ?? _internalNode;
   bool _hasPrimaryFocus = false;
   late Map<Type, Action<Intent>> _actionMap;
@@ -1280,6 +1281,7 @@ class DropdownButton2State<T> extends State<DropdownButton2<T>>
       ),
     };
     focusNode!.addListener(_handleFocusChanged);
+    menuItems = _getMenuItems();
   }
 
   @override
@@ -1289,6 +1291,30 @@ class DropdownButton2State<T> extends State<DropdownButton2<T>>
     focusNode!.removeListener(_handleFocusChanged);
     _internalNode?.dispose();
     super.dispose();
+  }
+
+  List<_MenuItem<T>> _getMenuItems() {
+    menuItems = <_MenuItem<T>>[
+      for (int index = 0; index < widget.items!.length; index += 1)
+        _MenuItem<T>(
+          item: widget.items![index],
+          onLayout: (Size size) {
+            // If [_dropdownRoute] is null and onLayout is called, this means
+            // that performLayout was called on a _DropdownRoute that has not
+            // left the widget tree but is already on its way out.
+            //
+            // Since onLayout is used primarily to collect the desired heights
+            // of each menu item before laying them out, not having the _DropdownRoute
+            // collect each item's height to lay out is fine since the route is
+            // already on its way out.
+            if (_dropdownRoute == null) return;
+
+            _dropdownRoute!.itemHeights[index] = size.height;
+          },
+        ),
+    ];
+
+    return menuItems;
   }
 
   void _removeDropdownRoute() {
@@ -1317,6 +1343,7 @@ class DropdownButton2State<T> extends State<DropdownButton2<T>>
       focusNode!.addListener(_handleFocusChanged);
     }
     _updateSelectedIndex();
+    menuItems = _getMenuItems();
   }
 
   void _updateSelectedIndex() {
@@ -1379,26 +1406,6 @@ class DropdownButton2State<T> extends State<DropdownButton2<T>>
   }
 
   void _handleTap() {
-    final List<_MenuItem<T>> menuItems = <_MenuItem<T>>[
-      for (int index = 0; index < widget.items!.length; index += 1)
-        _MenuItem<T>(
-          item: widget.items![index],
-          onLayout: (Size size) {
-            // If [_dropdownRoute] is null and onLayout is called, this means
-            // that performLayout was called on a _DropdownRoute that has not
-            // left the widget tree but is already on its way out.
-            //
-            // Since onLayout is used primarily to collect the desired heights
-            // of each menu item before laying them out, not having the _DropdownRoute
-            // collect each item's height to lay out is fine since the route is
-            // already on its way out.
-            if (_dropdownRoute == null) return;
-
-            _dropdownRoute!.itemHeights[index] = size.height;
-          },
-        ),
-    ];
-
     final NavigatorState navigator =
         Navigator.of(context, rootNavigator: dropdownStyle.isFullScreen);
     assert(_dropdownRoute == null);
