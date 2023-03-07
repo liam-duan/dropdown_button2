@@ -341,6 +341,8 @@ class _DropdownMenuState<T> extends State<_DropdownMenu<T>> {
     _fadeOpacity.dispose();
     _resize.dispose();
     searchData?.searchController?.removeListener(_updateSearchItems);
+    searchData?.dropdownMenuItemListNotifier
+        ?.removeListener(_updateFilteredItems);
     super.dispose();
   }
 
@@ -831,6 +833,10 @@ class _MenuItem<T> extends SingleChildRenderObjectWidget {
     required this.onLayout,
     required this.item,
   }) : super(child: item);
+
+  void set item(DropdownMenuItem<T>? item) {
+    this.item = item;
+  }
 
   final ValueChanged<Size> onLayout;
   final DropdownMenuItem<T>? item;
