@@ -31,6 +31,8 @@ typedef SelectedMenuItemBuilder = Widget Function(
 
 typedef OnMenuStateChangeFn = void Function(bool isOpen);
 
+typedef OnMenuDismissFn = void Function();
+
 typedef SearchMatchFn<T> = bool Function(
   DropdownMenuItem<T> item,
   String searchValue,
@@ -966,6 +968,7 @@ class DropdownButton2<T> extends StatefulWidget {
     this.disabledHint,
     this.onChanged,
     this.onMenuStateChange,
+    this.onMenuDismiss,
     this.style,
     this.underline,
     this.isDense = false,
@@ -1017,6 +1020,7 @@ class DropdownButton2<T> extends StatefulWidget {
     this.disabledHint,
     required this.onChanged,
     this.onMenuStateChange,
+    this.onMenuDismiss,
     this.style,
     this.underline,
     this.isDense = false,
@@ -1121,6 +1125,9 @@ class DropdownButton2<T> extends StatefulWidget {
 
   /// Called when the dropdown menu opens or closes.
   final OnMenuStateChangeFn? onMenuStateChange;
+
+  /// Called when the dropdown menu dismiss
+  final OnMenuDismissFn? onMenuDismiss;
 
   /// The text style to use for text in the dropdown button and the dropdown
   /// menu that appears when you tap the button.
@@ -1437,7 +1444,11 @@ class DropdownButton2State<T> extends State<DropdownButton2<T>>
       _isMenuOpen = false;
       widget.onMenuStateChange?.call(false);
       widget.formFieldCallBack?.call(false);
-      if (!mounted || newValue == null) return;
+      if (!mounted || newValue == null) {
+        widget.onMenuDismiss?.call();
+        return;
+      }
+
       widget.onChanged?.call(newValue.result);
     });
 
